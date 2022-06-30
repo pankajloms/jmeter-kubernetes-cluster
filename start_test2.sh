@@ -9,7 +9,7 @@ working_dir="`pwd`"
 tenant=`awk '{print $NF}' "$working_dir/tenant_export"`
 
 jmx="$1"
-read -p 'Enter path to the jmx file ' jmx
+read -rp 'Enter path to the jmx file ' jmx
 
 if [ ! -f "$jmx" ];
 then

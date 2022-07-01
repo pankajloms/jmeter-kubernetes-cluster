@@ -1,3 +1,2 @@
-./run.sh 
-	-n -t /test-plan.jmx -l $/results.csv -j ${T_DIR}/jmeter.log \
+./run.sh -n -t /bin/test-plan.jmx -l /bin/results.csv
 	

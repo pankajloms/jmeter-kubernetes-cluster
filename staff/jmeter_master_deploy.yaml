@@ -26,6 +26,13 @@ spec:
             subPath: "load_test"
         ports:
         - containerPort: 60000
+        resources:
+          requests:
+            cpu: '200m'
+            memory: 700Mi
+          limits:
+            cpu: '500m'
+            memory: 900Mi         
       volumes:
       - name: loadtest 
         configMap:

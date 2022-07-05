@@ -9,8 +9,7 @@ working_dir="`pwd`"
 tenant=`awk '{print $NF}' "$working_dir/tenant_export"`
 
 jmx="$1"
-read -p 'Enter path to the jmx file ' jmx
-     -l $jmx.csv
+[ -n "$jmx" ] || read -p 'Enter path to the jmx file ' jmx
 
 if [ ! -f "$jmx" ];
 then
@@ -26,6 +25,61 @@ test_name="$(basename "$jmx")"
 master_pod=`kubectl get po -n $tenant | grep jmeter-master | awk '{print $1}'`
 
 kubectl cp "$jmx" -n $tenant "$master_pod:/$test_name"
+
+# Get slaves
+
+printf "Get number of slaves\n"
+
+slave_pods=($(kubectl get po -n "$tenant" | grep jmeter-slave | grep -i running | awk '{print $1}'))
+
+#slavesnum=0
+
+# for array iteration
+slavesnum=${#slave_pods[@]}
+
+echo "$slavesnum"
+
+# for split command suffix and seq generator
+slavedigits="${#slavesnum}"
+
+echo "$slavedigits"
+
+printf "Number of slaves is %s\n" "${slavesnum}"
+
+# Split and upload csv files
+jmx_dir="/home/pankaj-kubernetes-cluster/staff"
+
+echo "jmx_dir is --- "
+echo "${jmx_dir}"
+
+for csvfilefull in "${jmx_dir}"/*.csv
+
+  do
+
+  csvfile="${csvfilefull##*/}"
+
+  echo "$csvfile"
+
+  printf "Processing %s file..\n" "$csvfile"
+
+  split --suffix-length="${slavedigits}" --additional-suffix=.csv -d --number="l/${slavesnum}" "${jmx_dir}/${csvfile}" "$jmx_dir"/
+
+  for j in 0 1
+  do
+    for i in $(seq -f "%0${slavedigits}g" 0 $((slavesnum-1)))
+    do
+        printf "Copy %s to %s on %s\n" "${i}.csv" "${csvfile}" "${slave_pods[j]}"
+        kubectl -n "$tenant" cp "${jmx_dir}/${i}.csv" "${slave_pods[j]}":/
+        echo "copied csv to pod ${slave_pods[j]}"
+        kubectl -n "$tenant" exec "${slave_pods[j]}" -- mv -v /"${i}.csv" /"${csvfile}"
+        echo "executed csv on pod ${slave_pods[j]}"
+        rm -v "${jmx_dir}/${i}.csv"
+        #let j=j+1
+    done # for i in "${slave_pods[@]}"
+    echo "done for i"
+  done #for j  
+  echo "done for j"
+done # for csvfile in "${jmx_dir}/*.csv"
 
 ## Echo Starting Jmeter load test
 
